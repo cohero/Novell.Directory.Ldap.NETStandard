@@ -32,8 +32,7 @@
 
 using System.IO;
 using System.Text;
-using Novell.Directory.Ldap.Asn1;
-using Novell.Directory.Ldap.Logging;
+using Microsoft.Extensions.Logging;
 using Novell.Directory.Ldap.Utilclass;
 
 namespace Novell.Directory.Ldap
@@ -55,8 +54,6 @@ namespace Novell.Directory.Ldap
     /// </seealso>
     public class LdapMatchingRuleSchema : LdapSchemaElement
     {
-        private static readonly ILog Logger = LogProvider.For<LdapMatchingRuleSchema>();
-        
         /// <summary>
         ///     Constructs a matching rule definition for adding to or deleting from
         ///     a directory.
@@ -118,23 +115,30 @@ namespace Novell.Directory.Ldap
             try
             {
                 var matchParser = new SchemaParser(rawMatchingRule);
-                names = new string[matchParser.Names.Length];
-                matchParser.Names.CopyTo(names, 0);
-                Oid = matchParser.Id;
-                Description = matchParser.Description;
-                Obsolete = matchParser.Obsolete;
-                SyntaxString = matchParser.Syntax;
-                if (rawMatchingRuleUse != null)
+                if (matchParser.Names != null)
                 {
-                    var matchUseParser = new SchemaParser(rawMatchingRuleUse);
-                    Attributes = matchUseParser.Applies;
-                }
+                    names = new string[matchParser.Names.Length];
+                    matchParser.Names.CopyTo(names, 0);
+                    Oid = matchParser.Id;
+                    Description = matchParser.Description;
+                    Obsolete = matchParser.Obsolete;
+                    SyntaxString = matchParser.Syntax;
+                    if (rawMatchingRuleUse != null)
+                    {
+                        var matchUseParser = new SchemaParser(rawMatchingRuleUse);
+                        Attributes = matchUseParser.Applies;
+                    }
 
-                Value = FormatString();
+                    Value = FormatString();
+                }
+                else
+                {
+                    Logger.Log.LogDebug($"Can not parse matching rule schema {rawMatchingRule}");
+                }
             }
             catch (IOException ex)
             {
-                Logger.Warn("Exception swallowed", ex);
+                Logger.Log.LogWarning("Exception swallowed", ex);
             }
         }
 
